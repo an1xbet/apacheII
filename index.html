@@ -756,7 +756,7 @@ function renderParamCard(param, container) {
         <div class="options-grid">${param.paO2.map((o,i) => optBtnHTML('oxy', i, o, param.paO2)).join('')}</div>
       </div>
       <div class="oxy-panel ${oxyMode === 'aaDO2' ? 'active' : ''}" id="panel-aaDO2">
-        <div class="options-grid">${param.aaDO2.map((o,i) => optBtnHTML('oxy', 1000+i, o, param.aaDO2)).join('')}</div>
+        <div class="options-grid">${param.aaDO2.map((o,i) => optBtnHTML('oxy', i, o, param.aaDO2)).join('')}</div>
       </div>`;
   } else if (param.isGCS) {
     const gE = state._gcsE, gV = state._gcsV, gM = state._gcsM;
@@ -841,7 +841,7 @@ function selectOption(paramId, idx) {
       delete state._oxyIdx; delete state['oxy'];
     } else {
       state._oxyIdx = idx;
-      state['oxy'] = arr[idx] ? arr[idx].score : arr[idx - 1000]?.score || 0;
+      state['oxy'] = arr[idx].score;
     }
   } else {
     const param = [...physParams, ageParam, chronicParam].find(p => p.id === paramId);
@@ -856,6 +856,9 @@ function selectOption(paramId, idx) {
   }
   updateCardVisual(paramId);
   updateLive();
+  if (paramId === 'oxy') {
+  updateOxyButtons();
+  }
   document.getElementById('card-' + paramId)?.classList.remove('error');
 }
 
@@ -930,7 +933,17 @@ function setOxyMode(mode, e) {
   const panel = document.getElementById(panelId);
   if (panel) {
     const arr = mode === 'paO2' ? p.paO2 : p.aaDO2;
-    panel.innerHTML = `<div class="options-grid">${arr.map((o,i) => `<button class="opt-btn clr-${o.color}" onclick="selectOption('oxy', ${i})"><span class="opt-range">${o.label}</span><span class="opt-score">+${o.score}</span></button>`).join('')}</div>`;
+panel.innerHTML = `
+  <div class="options-grid">
+    ${arr.map((o,i) => `
+      <button class="opt-btn clr-${o.color} ${state._oxyIdx === i ? 'selected' : ''}"
+        onclick="selectOption('oxy', ${i})">
+        <span class="opt-range">${o.label}</span>
+        <span class="opt-score">+${o.score}</span>
+      </button>
+    `).join('')}
+  </div>
+`;
   }
   updateCardVisual('oxy');
   updateLive();
@@ -958,6 +971,28 @@ function updateCardVisual(paramId) {
     }
   }
 }
+function updateOxyButtons() {
+  const param = physParams.find(p => p.isOxy);
+  const arr = oxyMode === 'paO2' ? param.paO2 : param.aaDO2;
+
+  const panelId = oxyMode === 'paO2' ? 'panel-paO2' : 'panel-aaDO2';
+  const panel = document.getElementById(panelId);
+
+  if (!panel) return;
+
+  panel.innerHTML = `
+    <div class="options-grid">
+      ${arr.map((o, i) => `
+        <button class="opt-btn clr-${o.color} ${state._oxyIdx === i ? 'selected' : ''}"
+          onclick="selectOption('oxy', ${i})">
+          <span class="opt-range">${o.label}</span>
+          <span class="opt-score">+${o.score}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
 
 function updateLive() {
   const { A, B, C, total } = calcABC();
@@ -1093,11 +1128,11 @@ function buildPrintDoc(A, B, C, total, interp, riskClass, mortalityText) {
     <table class="print-table">
       <thead><tr><th style="width:24px">№</th><th>Параметр</th><th>Значение</th><th style="width:55px;text-align:center">Баллы</th></tr></thead>
       <tbody>
-        <tr><td colspan="4" style="background:#e8e8e8 !important;font-weight:bold;text-align:center">A — Острые физиологические показатели (итого: ${A})</td></tr>
+        <tr><td colspan="4" style="background:#ffffff !important;font-weight:bold;text-align:center">A — Острые физиологические показатели (итого: ${A})</td></tr>
         ${allParamsA}
-        <tr><td colspan="4" style="background:#e8e8e8 !important;font-weight:bold;text-align:center">B — Возраст (итого: ${B})</td></tr>
+        <tr><td colspan="4" style="background:#ffffff !important;font-weight:bold;text-align:center">B — Возраст (итого: ${B})</td></tr>
         <tr><td>13</td><td><strong>${ageParam.name}</strong></td><td>${ageLabel}</td><td style="text-align:center;font-weight:bold;">${B}</td></tr>
-        <tr><td colspan="4" style="background:#e8e8e8 !important;font-weight:bold;text-align:center">C — Сопутствующие заболевания (итого: ${C})</td></tr>
+        <tr><td colspan="4" style="background:#ffffff !important;font-weight:bold;text-align:center">C — Сопутствующие заболевания (итого: ${C})</td></tr>
         <tr><td>14</td><td><strong>${chronicParam.name}</strong></td><td>${chronicLabel}</td><td style="text-align:center;font-weight:bold;">${C}</td></tr>
       </tbody>
     </table>
